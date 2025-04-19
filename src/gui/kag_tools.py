@@ -78,7 +78,7 @@ class KagTools :
         # RTL Support and icons
         fields = [
             ("الاسم الكامل", "👤", "name"),
-            ("البريد الإلكتروني", "📧", "email"),
+            ("اسم المستخدم", "📧", "username"),
             ("كلمة المرور", "🔒", "password"),
             ("عدد الحسابات", "🔢", "account_count"),
             ("البروكسي (اختياري)", "🌐", "proxy"),
@@ -250,8 +250,8 @@ class KagTools :
 
         self.entries['name'].delete(0, tk.END)
         self.entries['name'].insert(0, random_data['name'])
-        self.entries['email'].delete(0, tk.END)
-        self.entries['email'].insert(0, random_data['email'])
+        self.entries['username'].delete(0, tk.END)
+        self.entries['username'].insert(0, random_data['username'])
         self.entries['password'].delete(0, tk.END)
         self.entries['password'].insert(0, random_data['password'])
         self.entries['account_count'].delete(0, tk.END)
@@ -270,7 +270,7 @@ class KagTools :
     def prepare_account_data(self):
         return {
             "name": self.entries['name'].get(),
-            "email": self.entries['email'].get(),
+            "username": self.entries['username'].get(),
             "password": self.entries['password'].get(),
             "dob": f"{self.day_combo.get()} {self.month_combo.get()} {self.year_combo.get()}",
             "gender": self.gender_var.get(),

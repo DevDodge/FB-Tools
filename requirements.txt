@@ -1,2 +1,5 @@
 openpyxl
 selenium
+aiohttp
+pydantic
+requests

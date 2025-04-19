@@ -7,7 +7,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 from src.core.tempMailOrg import TempMailOrg
-
+from src.core.APIsRequest import get_last_email_content
 
 class AccountCreator:
     def __init__(self):
@@ -61,7 +61,7 @@ class AccountCreator:
 
             # Step 2: Override email in data
             data['email'] = temp_email
-            print(f"[✔] Final email used for account: {data['email']}")
+            print(f"[✔] Final email used for account: {data['username']}")
 
             # Step 3: Switch to a new tab for Facebook signup
             driver.execute_script("window.open('https://www.facebook.com/r.php', '_blank');")
@@ -98,18 +98,42 @@ class AccountCreator:
 
             cookies = driver.get_cookies()
             print("[✔] Cookies retrieved!")
-            email_username = data['email'].split("@")[0]
+            email_username = data['username'].split("@")[0]
             print(f"[✔] Saving cookies for: {email_username}...")
 
             os.makedirs("cookies", exist_ok=True)
             with open(f"cookies/{email_username}_cookies.json", "w") as f:
                 json.dump(cookies, f)
 
+            time.sleep(2)  # Wait for new tab to load
+            driver.switch_to.window(driver.window_handles[0])  # Switch back to first tab
+            time.sleep(1)  # Wait for tab switch
+
+            verification_code = self.temp_mail.get_verification_code(driver)
+            print('Verification code:', verification_code)
+
+            time.sleep(2)  # Wait for new tab to load
+            driver.switch_to.window(driver.window_handles[1])  # Switch back to first tab
+            time.sleep(2)  # Wait for tab switch
+
+            try:
+                verification_input = driver.find_element(By.XPATH,
+                                                         "//div[@id='conf_dialog_middle_components']//input[@id='code_in_cliff']")
+                slow_type(verification_input, verification_code)
+                time.sleep(1)
+                verification_input.submit()
+            except Exception as e:
+                print(f"Error entering verification code: {str(e)}")
+
+            time.sleep(200)
             return {
                 "status": "success",
                 "message": "Account created successfully",
-                "cookies": cookies
+                "cookies": cookies,
+                "verification_code": verification_code
             }
+        
+            
 
         except Exception as e:
             return {"status": "error", "message": str(e)}
