@@ -32,8 +32,14 @@ class KagTools :
         main_frame = tk.Frame(self.root, bg="#121212")
         main_frame.pack(fill=tk.BOTH, expand=True)
 
+        # ✅ New navigation frame for back button
+        nav_frame = tk.Frame(main_frame, bg="#121212")
+        nav_frame.pack(fill=tk.X, anchor="w", padx=15, pady=(10, 0))
+
+
+        # Title Frame (same as before)
         title_frame = tk.Frame(main_frame, bg="#121212")
-        title_frame.pack(pady=20)
+        title_frame.pack(pady=(10, 20))
 
         title = tk.Label(
             title_frame,
@@ -43,13 +49,14 @@ class KagTools :
             bg="#121212"
         )
         title.pack()
+
         tk.Frame(title_frame, height=2, bg="#FACC15", width=500).pack(pady=6)
 
-        # 🎲 Random Button
+       # 🎲 Random Button
         random_btn = tk.Button(
             main_frame,
             text="🎲 توليد بيانات عشوائية",
-            command=self.generate_random_data,
+            command=self.put_random_data_toGUI,
             bg="#10B981",
             fg="white",
             font=("Segoe UI Semibold", 12),
@@ -70,27 +77,47 @@ class KagTools :
 
         # RTL Support and icons
         fields = [
-            ("👤 الاسم الكامل", "name"),
-            ("📧 البريد الإلكتروني", "email"),
-            ("🔒 كلمة المرور", "password"),
-            ("🔢 عدد الحسابات", "account_count"),
-            ("🌐 البروكسي (اختياري)", "proxy"),
+            ("الاسم الكامل", "👤", "name"),
+            ("البريد الإلكتروني", "📧", "email"),
+            ("كلمة المرور", "🔒", "password"),
+            ("عدد الحسابات", "🔢", "account_count"),
+            ("البروكسي (اختياري)", "🌐", "proxy"),
         ]
 
-        for label_text, field_key in fields:
+        for label_text, icon, field_key in fields:
+            # Create a row for the field
             row = tk.Frame(form_frame, bg="#1F2937")
-            row.pack(fill=tk.X, pady=5)
-            label = tk.Label(row, text=label_text, bg="#1F2937", fg="#E5E7EB", width=18, anchor='e',
-                             font=("Segoe UI", 10))
-            label.pack(side=tk.RIGHT, padx=(10, 0))
+            row.pack(fill=tk.X, pady=3)  # Reduce vertical spacing between rows
 
+            # Add the label with text and icon
+            label = tk.Label(
+                row,
+                text=f"{label_text} {icon}",
+                bg="#1F2937",
+                fg="#E5E7EB",
+                width=22,  # Adjust width for a tighter layout
+                anchor='e',  # Right-align the text
+                font=("Segoe UI", 10)
+            )
+            label.pack(side=tk.RIGHT, padx=(5, 2))  # Reduce horizontal padding
+
+            # Entry background frame
             entry_bg = tk.Frame(row, bg="#374151", bd=0)
-            entry_bg.pack(side=tk.RIGHT, fill=tk.X, expand=True, padx=5)
-            entry = tk.Entry(entry_bg, font=("Segoe UI", 10), bg="#F9FAFB", fg="#111827", relief=tk.FLAT,
-                             justify="right")
-            entry.pack(ipady=6, ipadx=5, fill=tk.X, padx=3, pady=3)
-            self.entries[field_key] = entry
+            entry_bg.pack(side=tk.RIGHT, fill=tk.X, expand=True, padx=2)  # Minimize padding for alignment
 
+            # Entry field
+            entry = tk.Entry(
+                entry_bg,
+                font=("Segoe UI", 10),
+                bg="#F9FAFB",
+                fg="#111827",
+                relief=tk.FLAT,
+                justify="right"  # Align text to the right in the entry
+            )
+            entry.pack(ipady=5, ipadx=3, fill=tk.X, padx=0, pady=0)  # Tighten entry padding
+
+            # Store the entry for later use
+            self.entries[field_key] = entry
         # 📅 Date of Birth
         dob_frame = tk.Frame(form_frame, bg="#1F2937")
         dob_frame.pack(pady=6, fill=tk.X)
@@ -153,7 +180,7 @@ class KagTools :
 
         self.detailed_progress_label = tk.Label(
             main_frame,
-            text="⌛ جاري إنشاء الحسابات...",
+            text="يتم عرض التنبيهات هنا 📢",
             bg="#121212",
             fg="#D1D5DB",
             font=("Segoe UI", 9)
@@ -201,10 +228,8 @@ class KagTools :
 
         self.entries[field_key] = entry
 
-    def generate_random_string(self, length=6):
-        return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
-    def generate_random_data(self):
+    def put_random_data_toGUI(self):
         random_data = self.data_generator.generate_random_data()
 
         self.entries['name'].delete(0, tk.END)
@@ -223,6 +248,7 @@ class KagTools :
         self.gender_var.set(random_data['gender'])
 
     def validate_form(self):
+        self.update_status("جاري إنشاء الحسابات الان...", "#4CAF50")
         threading.Thread(target=self._create_accounts_process).start()
 
     def prepare_account_data(self):
@@ -244,7 +270,7 @@ class KagTools :
             for i in range(1, num_accounts + 1):
                 try:
                     # Generate random data for each account creation
-                    self.generate_random_data()
+                    self.data_generator.generate_random_data()
 
                     # Prepare data from the form and random generation
                     data = self.prepare_account_data()
