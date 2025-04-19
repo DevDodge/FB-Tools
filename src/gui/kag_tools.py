@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, PhotoImage
 import os
 import time
 import random
@@ -18,93 +18,100 @@ class KagTools :
         self.data_generator = DataGenerator()
         self.save_to_excel = ExcelHandler.save_to_excel
         self.root.title("KAG TOOLS")
-        self.root.geometry("750x680")
+        self.root.geometry("750x720")
         self.root.resizable(False, False)
         self.setup_ui()
 
-
     def setup_ui(self):
-        main_frame = tk.Frame(self.root, bg="#1a1a1a")
+        def on_enter(e, btn, color):
+            btn['bg'] = color
+
+        def on_leave(e, btn, color):
+            btn['bg'] = color
+
+        main_frame = tk.Frame(self.root, bg="#121212")
         main_frame.pack(fill=tk.BOTH, expand=True)
 
-        title_frame = tk.Frame(main_frame, bg="#1a1a1a")
-        title_frame.pack(pady=15)
+        title_frame = tk.Frame(main_frame, bg="#121212")
+        title_frame.pack(pady=20)
 
         title = tk.Label(
             title_frame,
             text="KAG TOOLS - Facebook Account Creator",
-            font=("Impact", 22, "bold"),
-            fg="#FFD700",
-            bg="#1a1a1a",
-            padx=15,
-            pady=8
+            font=("Segoe UI Black", 20),
+            fg="#FACC15",
+            bg="#121212"
         )
         title.pack()
+        tk.Frame(title_frame, height=2, bg="#FACC15", width=500).pack(pady=6)
 
-        tk.Frame(title_frame, height=3, bg="#FFD700", width=450).pack(pady=5)
-
+        # 🎲 Random Button
         random_btn = tk.Button(
             main_frame,
             text="🎲 توليد بيانات عشوائية",
             command=self.generate_random_data,
-            bg="#4CAF50",
+            bg="#10B981",
             fg="white",
-            font=("Arial", 12, "bold"),
-            padx=15,
-            pady=8,
-            cursor="hand2"
+            font=("Segoe UI Semibold", 12),
+            padx=20,
+            pady=10,
+            bd=0,
+            relief=tk.FLAT,
+            cursor="hand2",
+            activebackground="#059669"
         )
         random_btn.pack(pady=10)
+        random_btn.bind("<Enter>", lambda e: on_enter(e, random_btn, "#059669"))
+        random_btn.bind("<Leave>", lambda e: on_leave(e, random_btn, "#10B981"))
 
-        form_frame = tk.Frame(main_frame, bg="#34495e")
-        form_frame.pack(pady=10, padx=25, fill=tk.X)
+        # 🔲 Form Container
+        form_frame = tk.Frame(main_frame, bg="#1F2937", bd=1, relief=tk.FLAT)
+        form_frame.pack(pady=10, padx=30, fill=tk.X)
 
+        # RTL Support and icons
         fields = [
-            ("الاسم الكامل", "name"),
-            ("البريد الإلكتروني", "email"),
-            ("كلمة المرور", "password"),
-            ("عدد الحسابات", "account_count"),
-            ("البروكسي (اختياري)", "proxy"),
+            ("👤 الاسم الكامل", "name"),
+            ("📧 البريد الإلكتروني", "email"),
+            ("🔒 كلمة المرور", "password"),
+            ("🔢 عدد الحسابات", "account_count"),
+            ("🌐 البروكسي (اختياري)", "proxy"),
         ]
 
-        for text, field in fields:
-            self.create_form_row(form_frame, text, field)
+        for label_text, field_key in fields:
+            row = tk.Frame(form_frame, bg="#1F2937")
+            row.pack(fill=tk.X, pady=5)
+            label = tk.Label(row, text=label_text, bg="#1F2937", fg="#E5E7EB", width=18, anchor='e',
+                             font=("Segoe UI", 10))
+            label.pack(side=tk.RIGHT, padx=(10, 0))
 
-        dob_frame = tk.Frame(form_frame, bg="#34495e")
-        dob_frame.pack(pady=5, fill=tk.X)
+            entry_bg = tk.Frame(row, bg="#374151", bd=0)
+            entry_bg.pack(side=tk.RIGHT, fill=tk.X, expand=True, padx=5)
+            entry = tk.Entry(entry_bg, font=("Segoe UI", 10), bg="#F9FAFB", fg="#111827", relief=tk.FLAT,
+                             justify="right")
+            entry.pack(ipady=6, ipadx=5, fill=tk.X, padx=3, pady=3)
+            self.entries[field_key] = entry
 
-        tk.Label(
-            dob_frame,
-            text="تاريخ الميلاد",
-            width=15,
-            anchor='w',
-            bg="#34495e",
-            fg="white"
-        ).pack(side=tk.LEFT)
+        # 📅 Date of Birth
+        dob_frame = tk.Frame(form_frame, bg="#1F2937")
+        dob_frame.pack(pady=6, fill=tk.X)
+        tk.Label(dob_frame, text="📅 تاريخ الميلاد", width=18, anchor='e', bg="#1F2937", fg="#E5E7EB",
+                 font=("Segoe UI", 10)).pack(side=tk.RIGHT, padx=(10, 0))
 
-        self.day_combo = ttk.Combobox(dob_frame, width=5, values=[str(i) for i in range(1, 32)])
-        self.day_combo.pack(side=tk.LEFT, padx=2)
-
+        self.day_combo = ttk.Combobox(dob_frame, width=5, values=[str(i) for i in range(1, 32)], justify='right')
+        self.day_combo.pack(side=tk.RIGHT, padx=2)
         self.month_combo = ttk.Combobox(dob_frame, width=10, values=[
             "January", "February", "March", "April", "May", "June",
             "July", "August", "September", "October", "November", "December"
-        ])
-        self.month_combo.pack(side=tk.LEFT, padx=2)
+        ], justify='right')
+        self.month_combo.pack(side=tk.RIGHT, padx=2)
+        self.year_combo = ttk.Combobox(dob_frame, width=5, values=[str(i) for i in range(1950, 2024)], justify='right')
+        self.year_combo.pack(side=tk.RIGHT, padx=2)
 
-        self.year_combo = ttk.Combobox(dob_frame, width=5, values=[str(i) for i in range(1950, 2024)])
-        self.year_combo.pack(side=tk.LEFT, padx=2)
-
-        gender_frame = tk.Frame(form_frame, bg="#34495e")
-        gender_frame.pack(pady=5, fill=tk.X)
-
-        tk.Label(
-            gender_frame,
-            text="الجنس",
-            width=15,
-            anchor='w',
-            bg="#34495e",
-            fg="white"
-        ).pack(side=tk.LEFT)
+        # 🚻 Gender
+        gender_frame = tk.Frame(form_frame, bg="#1F2937")
+        gender_frame.pack(pady=6, fill=tk.X)
+        tk.Label(gender_frame, text="🚻 الجنس", width=18, anchor='e', bg="#1F2937", fg="#E5E7EB",
+                 font=("Segoe UI", 10)).pack(side=tk.RIGHT, padx=(10, 0))
 
         self.gender_var = tk.StringVar(value="male")
         genders = [("ذكر", "male"), ("أنثى", "female"), ("مخصص", "custom")]
@@ -114,51 +121,73 @@ class KagTools :
                 text=text,
                 variable=self.gender_var,
                 value=val,
-                bg="#34495e",
-                fg="white",
-                selectcolor="#2c3e50"
-            ).pack(side=tk.LEFT, padx=10)
+                bg="#1F2937",
+                fg="#E5E7EB",
+                selectcolor="#374151",
+                font=("Segoe UI", 10),
+                anchor="e"
+            ).pack(side=tk.RIGHT, padx=10)
 
+        # 🕶️ Headless Checkbox
         self.headless_var = tk.BooleanVar()
         headless_check = tk.Checkbutton(
             main_frame,
-            text="تشغيل المتصفح في الخلفية (بدون عرض)",
+            text="🕶️ تشغيل المتصفح في الخلفية (بدون عرض)",
             variable=self.headless_var,
-            bg="#1a1a1a",
-            fg="white",
-            selectcolor="#2c3e50"
+            bg="#121212",
+            fg="#F9FAFB",
+            font=("Segoe UI", 10),
+            selectcolor="#1F2937",
+            anchor="w",
+            justify="right"
         )
         headless_check.pack(pady=5)
 
-        self.progress = ttk.Progressbar(main_frame, orient='horizontal', length=300, mode='determinate')
+        # ⏳ Progress
+        self.progress = ttk.Progressbar(main_frame, orient='horizontal', length=320, mode='determinate')
         self.progress.pack(pady=10)
 
-        self.status_label = tk.Label(main_frame, text="", bg="#1a1a1a", fg="white")
+        self.status_label = tk.Label(main_frame, text="", bg="#121212", fg="#D1D5DB", font=("Segoe UI", 9),
+                                     anchor="center")
         self.status_label.pack()
 
-        self.detailed_progress_label = tk.Label(main_frame, text="جاري إنشاء الحسابات...", bg="#1a1a1a", fg="white")
+        self.detailed_progress_label = tk.Label(
+            main_frame,
+            text="⌛ جاري إنشاء الحسابات...",
+            bg="#121212",
+            fg="#D1D5DB",
+            font=("Segoe UI", 9)
+        )
         self.detailed_progress_label.pack(pady=5)
 
+        # 🛠️ Create Button
         create_btn = tk.Button(
             main_frame,
             text="🛠️ إنشاء حسابات",
-            command=self.validate_form,#here is a cannot find declaration to go to
-            bg="#FF6B6B",
+            command=self.validate_form,
+            bg="#EF4444",
             fg="white",
-            font=("Arial", 14, "bold"),
-            padx=25,
+            font=("Segoe UI Semibold", 13),
+            padx=30,
             pady=12,
-            cursor="hand2"
+            bd=0,
+            relief=tk.FLAT,
+            cursor="hand2",
+            activebackground="#DC2626"
         )
         create_btn.pack(pady=15)
+        create_btn.bind("<Enter>", lambda e: on_enter(e, create_btn, "#DC2626"))
+        create_btn.bind("<Leave>", lambda e: on_leave(e, create_btn, "#EF4444"))
 
+        # 📌 Footer
         footer = tk.Label(
             main_frame,
-            text="تم التطوير بواسطة KAG Tools",
-            bg="#1a1a1a",
-            fg="#FFFFFF"
+            text="📌 تم التطوير بواسطة KAG Tools",
+            bg="#121212",
+            fg="#9CA3AF",
+            font=("Segoe UI", 9)
         )
-        footer.pack(side=tk.BOTTOM, pady=10)
+        footer.pack(side=tk.BOTTOM, pady=15)
 
     def create_form_row(self, parent, label_text, field_key):
         row = tk.Frame(parent, bg="#34495e")

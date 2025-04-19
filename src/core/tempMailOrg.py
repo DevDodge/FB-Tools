@@ -1,16 +1,13 @@
 import os
 import time
 import random
-import json
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+import json
 
-
-class AccountCreator:
+class TempMailOrg:
     def __init__(self):
         self.driver = None
 
@@ -35,8 +32,6 @@ class AccountCreator:
 
             service = Service(executable_path=os.path.abspath("drivers/chromedriver.exe"))
             driver = webdriver.Chrome(service=service, options=chrome_options)
-
-            # Spoof fingerprinting
             driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
                 "source": """
                     Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
@@ -44,7 +39,7 @@ class AccountCreator:
                     WebGLRenderingContext.prototype.getParameter = function(parameter) {
                         if (parameter === 37445) return 'Intel Inc.';
                         if (parameter === 37446) return 'Intel Iris OpenGL Engine';
-                        return getParameter.call(this, parameter);
+                        return getParameter(parameter);
                     };
                     const toDataURL = HTMLCanvasElement.prototype.toDataURL;
                     HTMLCanvasElement.prototype.toDataURL = function() {
@@ -53,24 +48,12 @@ class AccountCreator:
                 """
             })
 
-            # Step 1: Get temporary email
-            temp_email = self.get_temp_email(driver)
-            if not temp_email:
-                raise Exception("Failed to retrieve temporary email")
-            print(f"[✔] Email received from temp-mail: {temp_email}")
-
-            # Step 2: Override email in data
-            data['email'] = temp_email
-            print(f"[✔] Final email used for account: {data['email']}")
-
-            # Step 3: Switch to a new tab for Facebook signup
-            driver.execute_script("window.open('https://www.facebook.com/r.php', '_blank');")
-            driver.switch_to.window(driver.window_handles[-1])  # Facebook tab
+            driver.get("https://www.facebook.com/r.php")
 
             def slow_type(element, text):
                 for char in text:
                     element.send_keys(char)
-                    time.sleep(random.uniform(0.05, 0.15))
+                    time.sleep(random.uniform(0.05, 0.2))
 
             slow_type(driver.find_element(By.NAME, "firstname"), data['name'].split()[0])
             slow_type(driver.find_element(By.NAME, "lastname"), data['name'].split()[1])
@@ -78,67 +61,29 @@ class AccountCreator:
             time.sleep(1)
             slow_type(driver.find_element(By.NAME, "reg_passwd__"), data['password'])
 
-            day, month, year = data['dob'].split()
-            driver.find_element(By.ID, "day").send_keys(day)
-            driver.find_element(By.ID, "month").send_keys(month)
-            driver.find_element(By.ID, "year").send_keys(year)
+            driver.find_element(By.ID, "day").send_keys(data['dob'].split()[0])
+            driver.find_element(By.ID, "month").send_keys(data['dob'].split()[1])
+            driver.find_element(By.ID, "year").send_keys(data['dob'].split()[2])
 
             gender_element = driver.find_elements(By.NAME, "sex")
             if data['gender'] == "male":
                 gender_element[0].click()
             elif data['gender'] == "female":
                 gender_element[1].click()
-            else:
-                gender_element[2].click()
 
             time.sleep(3)
             driver.find_element(By.NAME, "websubmit").click()
             time.sleep(5)
-            print("[✔] webSubmit clicked!")
-
+            print("webSubmit clicked!")
             cookies = driver.get_cookies()
-            print("[✔] Cookies retrieved!")
+            print("Cookies retrieved!")
             email_username = data['email'].split("@")[0]
-            print(f"[✔] Saving cookies for: {email_username}...")
-
-            os.makedirs("cookies", exist_ok=True)
+            print(f"Saving cookies for {email_username}...")
             with open(f"cookies/{email_username}_cookies.json", "w") as f:
                 json.dump(cookies, f)
-
-            return {
-                "status": "success",
-                "message": "Account created successfully",
-                "cookies": cookies
-            }
-
+            return {"status": "success", "message": "Account created successfully", "cookies": cookies}
         except Exception as e:
             return {"status": "error", "message": str(e)}
         finally:
             if driver:
                 driver.quit()
-
-    def get_temp_email(self, driver):
-        try:
-            driver.get("https://temp-mail.org/en/")
-            print("[⏳] Waiting for temp email to be generated...")
-
-            # Wait until the input appears
-            WebDriverWait(driver, 15).until(
-                EC.presence_of_element_located((By.ID, "mail"))
-            )
-
-            for _ in range(30):  # Max 30 attempts (~30s)
-                email_input = driver.find_element(By.ID, "mail")
-                temp_email = email_input.get_attribute("value")
-
-                if temp_email and "loading" not in temp_email.lower():
-                    print(f"[✔] Retrieved temporary email: {temp_email}")
-                    return temp_email
-
-                time.sleep(1)  # Wait 1s before trying again
-
-            raise Exception("Timed out waiting for valid temp email.")
-
-        except Exception as e:
-            print(f"[✖] Error retrieving temp email: {e}")
-            return None
