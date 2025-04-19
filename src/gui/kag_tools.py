@@ -121,8 +121,16 @@ class KagTools :
         # 📅 Date of Birth
         dob_frame = tk.Frame(form_frame, bg="#1F2937")
         dob_frame.pack(pady=6, fill=tk.X)
-        tk.Label(dob_frame, text="📅 تاريخ الميلاد", width=18, anchor='e', bg="#1F2937", fg="#E5E7EB",
-                 font=("Segoe UI", 10)).pack(side=tk.RIGHT, padx=(10, 0))
+        tk.Label(
+            dob_frame,
+            text="تاريخ الميلاد 📅",  # Place the icon after the Arabic text
+            width=18,
+            anchor='e',  # Right-align the text and icon
+            bg="#1F2937",
+            fg="#E5E7EB",
+            font=("Segoe UI", 10),
+            justify="right"  # Ensure RTL alignment
+        ).pack(side=tk.RIGHT, padx=(10, 0))
 
         self.day_combo = ttk.Combobox(dob_frame, width=5, values=[str(i) for i in range(1, 32)], justify='right')
         self.day_combo.pack(side=tk.RIGHT, padx=2)
@@ -137,8 +145,16 @@ class KagTools :
         # 🚻 Gender
         gender_frame = tk.Frame(form_frame, bg="#1F2937")
         gender_frame.pack(pady=6, fill=tk.X)
-        tk.Label(gender_frame, text="🚻 الجنس", width=18, anchor='e', bg="#1F2937", fg="#E5E7EB",
-                 font=("Segoe UI", 10)).pack(side=tk.RIGHT, padx=(10, 0))
+        tk.Label(
+            gender_frame,
+            text="الجنس 🚻",  # Place the icon after the Arabic text
+            width=18,
+            anchor='e',  # Right-align the text and icon
+            bg="#1F2937",
+            fg="#E5E7EB",
+            font=("Segoe UI", 10),
+            justify="right"  # Ensure RTL alignment
+        ).pack(side=tk.RIGHT, padx=(10, 0))
 
         self.gender_var = tk.StringVar(value="male")
         genders = [("ذكر", "male"), ("أنثى", "female"), ("مخصص", "custom")]
