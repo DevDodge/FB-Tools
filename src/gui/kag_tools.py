@@ -1,30 +1,27 @@
-# -*- coding: utf-8 -*-
 import tkinter as tk
 from tkinter import ttk, messagebox
-import csv
 import os
 import time
 import random
 import string
 import threading
-from datetime import datetime
-from selenium import webdriver 
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait #comment
-from selenium.webdriver.support import expected_conditions as EC
-from openpyxl import Workbook, load_workbook
 import json
+from src.core.account_creator import AccountCreator
+from src.core.data_generator import DataGenerator
+from src.utils.file_handlers import ExcelHandler
 
-class KagTools:
+class KagTools :
     def __init__(self, root):
         self.root = root
+        self.entries = {}
+        self.account_creator = AccountCreator()
+        self.data_generator = DataGenerator()
+        self.save_to_excel = ExcelHandler.save_to_excel
         self.root.title("KAG TOOLS")
         self.root.geometry("750x680")
         self.root.resizable(False, False)
-        self.entries = {}
         self.setup_ui()
+
 
     def setup_ui(self):
         main_frame = tk.Frame(self.root, bg="#1a1a1a")
@@ -145,7 +142,7 @@ class KagTools:
         create_btn = tk.Button(
             main_frame,
             text="🛠️ إنشاء حسابات",
-            command=self.validate_form,
+            command=self.validate_form,#here is a cannot find declaration to go to
             bg="#FF6B6B",
             fg="white",
             font=("Arial", 14, "bold"),
@@ -179,32 +176,36 @@ class KagTools:
         return ''.join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
     def generate_random_data(self):
-        first_names_en = ["John", "Michael", "Sarah", "Emma", "James", "Olivia"]
-        last_names_en = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia"]
-        domains = ["gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "mail.com", "protonmail.com"]
-        
-        random_name = f"{random.choice(first_names_en)} {random.choice(last_names_en)}"
-        random_domain = random.choice(domains)
-        random_email = f"{random_name.split()[0].lower()}.{random.choice(last_names_en).lower()}{random.randint(1,99)}@{random_domain}"
-        random_password = f"Pass{random.randint(1000,9999)}"
+        random_data = self.data_generator.generate_random_data()
 
         self.entries['name'].delete(0, tk.END)
-        self.entries['name'].insert(0, random_name)
+        self.entries['name'].insert(0, random_data['name'])
         self.entries['email'].delete(0, tk.END)
-        self.entries['email'].insert(0, random_email)
+        self.entries['email'].insert(0, random_data['email'])
         self.entries['password'].delete(0, tk.END)
-        self.entries['password'].insert(0, random_password)
+        self.entries['password'].insert(0, random_data['password'])
         self.entries['account_count'].delete(0, tk.END)
-        self.entries['account_count'].insert(0, str(random.randint(1, 3)))
+        self.entries['account_count'].insert(0, random_data['account_count'])
         self.entries['proxy'].delete(0, tk.END)
 
-        self.day_combo.set(str(random.randint(1, 28)))
-        self.month_combo.set(random.choice(self.month_combo['values']))
-        self.year_combo.set(str(random.randint(1980, 2000)))
-        self.gender_var.set(random.choice(["male", "female"]))
+        self.day_combo.set(random_data['day'])
+        self.month_combo.set(random_data['month'])
+        self.year_combo.set(random_data['year'])
+        self.gender_var.set(random_data['gender'])
 
     def validate_form(self):
         threading.Thread(target=self._create_accounts_process).start()
+
+    def prepare_account_data(self):
+        return {
+            "name": self.entries['name'].get(),
+            "email": self.entries['email'].get(),
+            "password": self.entries['password'].get(),
+            "dob": f"{self.day_combo.get()} {self.month_combo.get()} {self.year_combo.get()}",
+            "gender": self.gender_var.get(),
+            "proxy": self.entries['proxy'].get(),
+            "headless": self.headless_var.get()
+        }
 
     def _create_accounts_process(self):
         try:
@@ -213,21 +214,51 @@ class KagTools:
 
             for i in range(1, num_accounts + 1):
                 try:
+                    # Generate random data for each account creation
                     self.generate_random_data()
+
+                    # Prepare data from the form and random generation
                     data = self.prepare_account_data()
-                    self.create_account(data)
+
+                    # Create the account using the prepared data
+                    result = self.account_creator.create_account(data)
+
                     self.save_to_excel(data)
                     self.update_status(f"تم إنشاء الحساب {i}", "#4CAF50")
                     self.update_detailed_progress(f"الحساب {i}/{num_accounts} مكتمل")
+                    print('result is : ', result) #returns None
+                    if result['status'] == 'success':
+                        # Save the account data to an Excel file
+                        ExcelHandler.save_to_excel(data)
+
+                        # Save cookies if they exist
+                        if 'cookies' in result:
+                            email_username = data['email'].split("@")[0]
+                            os.makedirs("src/cookies", exist_ok=True)
+                            with open(f"src/cookies/{email_username}_cookies.json", "w") as f:
+                                json.dump(result['cookies'], f)
+
+                        # Update the status to show success
+                        self.update_status(f"تم إنشاء الحساب {i}", "#4CAF50")
+                    else:
+                        # Update the status to show failure
+                        self.update_status(f"فشل في الحساب {i}: {result['message']}", "red") # returns NoneType object is not subscriptable
+
+                    # Update the detailed progress for the current account
+                    self.update_detailed_progress(f"الحساب {i}/{num_accounts} مكتمل")
                 except Exception as e:
+                    # Update the status to show failure for the current account
                     self.update_status(f"فشل في الحساب {i}: {str(e)}", "red")
 
+                # Update the progress bar
                 self.progress['value'] = i
                 self.root.update()
                 time.sleep(random.uniform(2, 4))
 
+            # Show a message box when all accounts have been created
             messagebox.showinfo("الانتهاء", "تمت العملية")
         except Exception as e:
+            # Show a message box in case of an error
             messagebox.showerror("خطأ", str(e))
 
     def update_status(self, message, color):
@@ -238,122 +269,5 @@ class KagTools:
         self.detailed_progress_label.config(text=message)
         self.root.update()
 
-    def prepare_account_data(self):
-        return {
-            'name': self.entries['name'].get().strip(),
-            'email': self.entries['email'].get().strip(),
-            'password': self.entries['password'].get().strip(),
-            'day': self.day_combo.get(),
-            'month': self.month_combo.get(),
-            'year': self.year_combo.get(),
-            'gender': self.gender_var.get(),
-            'proxy': self.entries['proxy'].get().strip(),
-            'headless': self.headless_var.get()
-        }
-
-    def save_to_excel(self, data):
-        filename = "data/accounts.xlsx"
-        if not os.path.exists(filename):
-            wb = Workbook()
-            ws = wb.active
-            ws.append(["Name", "Email", "Password", "DOB", "Gender", "Proxy", "Created At"])
-        else:
-            wb = load_workbook(filename)
-            ws = wb.active
-
-        ws.append([
-            data['name'],
-            data['email'],
-            data['password'],
-            data['dob'],
-            data['gender'],
-            data['proxy'],
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        ])
-        wb.save(filename)
-
-    def create_account(self, data):
-        driver = None
-        try:
-            user_agents = [
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Safari/605.1.15"
-            ]
-
-            chrome_options = Options()
-            chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-            chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-            chrome_options.add_argument(f"user-agent={random.choice(user_agents)}")
-            if data.get('headless'):
-                chrome_options.add_argument("--headless")
-            if data.get('proxy'):
-                chrome_options.add_argument(f'--proxy-server={data["proxy"]}')
-
-            service = Service(executable_path=os.path.abspath("drivers/chromedriver.exe"))
-            driver = webdriver.Chrome(service=service, options=chrome_options)
-            driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-                "source": """
-                    Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-                    const getParameter = WebGLRenderingContext.prototype.getParameter;
-                    WebGLRenderingContext.prototype.getParameter = function(parameter) {
-                        if (parameter === 37445) return 'Intel Inc.';
-                        if (parameter === 37446) return 'Intel Iris OpenGL Engine';
-                        return getParameter(parameter);
-                    };
-                    const toDataURL = HTMLCanvasElement.prototype.toDataURL;
-                    HTMLCanvasElement.prototype.toDataURL = function() {
-                        return "data:image/png;base64,fake_canvas_data";
-                    };
-                """
-            })
-
-            driver.get("https://www.facebook.com/r.php")
-
-            def slow_type(element, text):
-                for char in text:
-                    element.send_keys(char)
-                    time.sleep(random.uniform(0.05, 0.2))
-
-            slow_type(driver.find_element(By.NAME, "firstname"), data['name'].split()[0])
-            slow_type(driver.find_element(By.NAME, "lastname"), data['name'].split()[1])
-            slow_type(driver.find_element(By.NAME, "reg_email__"), data['email'])
-            time.sleep(1)
-            slow_type(driver.find_element(By.NAME, "reg_passwd__"), data['password'])
-
-            driver.find_element(By.ID, "day").send_keys(data['dob'].split()[0])
-            driver.find_element(By.ID, "month").send_keys(data['dob'].split()[1])
-            driver.find_element(By.ID, "year").send_keys(data['dob'].split()[2])
-
-            gender_element = driver.find_elements(By.NAME, "sex")
-            if data['gender'] == "male":
-                gender_element[0].click()
-            elif data['gender'] == "female":
-                gender_element[1].click()
-
-            time.sleep(3)
-            driver.find_element(By.NAME, "websubmit").click()
-            time.sleep(5)
-
-            cookies = driver.get_cookies()
-            email_username = data['email'].split("@")[0]
-            with open(f"cookies/{email_username}_cookies.json", "w") as f:
-                json.dump(cookies, f)
-
-        except Exception as e:
-            raise Exception(f"فشل إنشاء الحساب: {e}")
-        finally:
-            if driver:
-                driver.quit()
-
     def on_close(self):
         self.root.destroy()
-
-if __name__ == "__main__":
-    if not os.path.exists("cookies"):
-        os.mkdir("cookies")
-
-    root = tk.Tk()
-    app = KagTools(root)
-    root.protocol("WM_DELETE_WINDOW", app.on_close)
-    root.mainloop()
